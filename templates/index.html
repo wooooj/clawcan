@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recruitment Efficiency Tool</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f7fa;
+            color: #333;
+        }
+        .container {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        textarea, select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            resize: vertical;
+            min-height: 120px;
+        }
+        select {
+            min-height: 44px;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        button:disabled {
+            background-color: #bdc3c7;
+            cursor: not-allowed;
+        }
+        .result-section {
+            margin-top: 30px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 6px;
+            border-left: 4px solid #3498db;
+        }
+        .result-section h3 {
+            margin-top: 0;
+            color: #2c3e50;
+        }
+        .result-content {
+            white-space: pre-wrap;
+            font-family: monospace;
+            background-color: white;
+            padding: 15px;
+            border-radius: 4px;
+            border: 1px solid #eee;
+        }
+        .loading {
+            text-align: center;
+            color: #7f8c8d;
+            font-style: italic;
+        }
+        .error {
+            color: #e74c3c;
+            background-color: #fadbd8;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #ecf0f1;
+        }
+        .tab {
+            padding: 12px 24px;
+            cursor: pointer;
+            background-color: #ecf0f1;
+            border: 1px solid #ddd;
+            border-bottom: none;
+            border-radius: 6px 6px 0 0;
+            margin-right: 5px;
+        }
+        .tab.active {
+            background-color: white;
+            border-bottom: 2px solid #3498db;
+            margin-bottom: -2px;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 Recruitment Efficiency Tool</h1>
+        
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('jd-analysis')">JD Analysis</div>
+            <div class="tab" onclick="switchTab('keyword-gen')">Keyword Generation</div>
+            <div class="tab" onclick="switchTab('resume-match')">Resume Matching</div>
+        </div>
+
+        <!-- JD Analysis Tab -->
+        <div id="jd-analysis" class="tab-content active">
+            <div class="form-group">
+                <label for="jd-text">Job Description:</label>
+                <textarea id="jd-text" placeholder="Paste the job description here..."></textarea>
+            </div>
+            <button onclick="analyzeJD()">Analyze Job Description</button>
+            <div id="jd-result" class="result-section" style="display: none;">
+                <h3>Analysis Results:</h3>
+                <div id="jd-result-content" class="result-content"></div>
+            </div>
+        </div>
+
+        <!-- Keyword Generation Tab -->
+        <div id="keyword-gen" class="tab-content">
+            <div class="form-group">
+                <label for="keyword-jd">Job Description:</label>
+                <textarea id="keyword-jd" placeholder="Paste the job description to extract keywords from..."></textarea>
+            </div>
+            <div class="form-group">
+                <label for="keyword-type">Keyword Type:</label>
+                <select id="keyword-type">
+                    <option value="technical">Technical Skills</option>
+                    <option value="soft">Soft Skills</option>
+                    <option value="experience">Experience Requirements</option>
+                    <option value="education">Education Requirements</option>
+                    <option value="all">All Keywords</option>
+                </select>
+            </div>
+            <button onclick="generateKeywords()">Generate Keywords</button>
+            <div id="keyword-result" class="result-section" style="display: none;">
+                <h3>Generated Keywords:</h3>
+                <div id="keyword-result-content" class="result-content"></div>
+            </div>
+        </div>
+
+        <!-- Resume Matching Tab -->
+        <div id="resume-match" class="tab-content">
+            <div class="form-group">
+                <label for="match-jd">Job Description:</label>
+                <textarea id="match-jd" placeholder="Paste the job description here..."></textarea>
+            </div>
+            <div class="form-group">
+                <label for="match-resume">Resume/CV:</label>
+                <textarea id="match-resume" placeholder="Paste the candidate's resume here..."></textarea>
+            </div>
+            <button onclick="matchResume()">Match Resume to JD</button>
+            <div id="match-result" class="result-section" style="display: none;">
+                <h3>Matching Results:</h3>
+                <div id="match-result-content" class="result-content"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function switchTab(tabId) {
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            // Deactivate all tabs
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            // Show selected tab content
+            document.getElementById(tabId).classList.add('active');
+            // Activate selected tab
+            event.target.classList.add('active');
+        }
+
+        async function analyzeJD() {
+            const jdText = document.getElementById('jd-text').value;
+            if (!jdText.trim()) {
+                alert('Please enter a job description.');
+                return;
+            }
+            
+            const resultDiv = document.getElementById('jd-result');
+            const resultContent = document.getElementById('jd-result-content');
+            resultDiv.style.display = 'block';
+            resultContent.innerHTML = '<div class="loading">Analyzing job description...</div>';
+            
+            try {
+                const response = await fetch('/api/analyze-jd', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ jd_text: jdText })
+                });
+                
+                const data = await response.json();
+                if (response.ok) {
+                    let resultText = '';
+                    if (data.requirements && data.requirements.length > 0) {
+                        resultText += `<strong>Requirements:</strong>\n${data.requirements.join('\n')}\n\n`;
+                    }
+                    if (data.responsibilities && data.responsibilities.length > 0) {
+                        resultText += `<strong>Responsibilities:</strong>\n${data.responsibilities.join('\n')}\n\n`;
+                    }
+                    resultText += `<strong>Summary:</strong>\n${data.summary}`;
+                    resultContent.innerHTML = resultText;
+                } else {
+                    resultContent.innerHTML = `<div class="error">Error: ${data.error || 'Failed to analyze JD'}</div>`;
+                }
+            } catch (error) {
+                resultContent.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+            }
+        }
+
+        async function generateKeywords() {
+            const jdText = document.getElementById('keyword-jd').value;
+            if (!jdText.trim()) {
+                alert('Please enter a job description.');
+                return;
+            }
+            
+            const resultDiv = document.getElementById('keyword-result');
+            const resultContent = document.getElementById('keyword-result-content');
+            resultDiv.style.display = 'block';
+            resultContent.innerHTML = '<div class="loading">Generating keywords...</div>';
+            
+            try {
+                const response = await fetch('/api/generate-keywords', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ 
+                        jd_text: jdText
+                    })
+                });
+                
+                const data = await response.json();
+                if (response.ok) {
+                    resultContent.innerHTML = data.keywords.join('\n');
+                } else {
+                    resultContent.innerHTML = `<div class="error">Error: ${data.error || 'Failed to generate keywords'}</div>`;
+                }
+            } catch (error) {
+                resultContent.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+            }
+        }
+
+        async function matchResume() {
+            const jdText = document.getElementById('match-jd').value;
+            const resumeText = document.getElementById('match-resume').value;
+            
+            if (!jdText.trim() || !resumeText.trim()) {
+                alert('Please enter both job description and resume.');
+                return;
+            }
+            
+            const resultDiv = document.getElementById('match-result');
+            const resultContent = document.getElementById('match-result-content');
+            resultDiv.style.display = 'block';
+            resultContent.innerHTML = '<div class="loading">Matching resume to job description...</div>';
+            
+            try {
+                const response = await fetch('/api/match-resume', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ 
+                        jd_text: jdText,
+                        resume_text: resumeText
+                    })
+                });
+                
+                const data = await response.json();
+                if (response.ok) {
+                    let resultText = `<strong>Match Percentage:</strong> ${data.match_percentage}%\n\n`;
+                    if (data.common_keywords && data.common_keywords.length > 0) {
+                        resultText += `<strong>Common Keywords:</strong>\n${data.common_keywords.join('\n')}\n\n`;
+                    }
+                    resultText += `<strong>JD Keywords Count:</strong> ${data.jd_keywords_count}\n`;
+                    resultText += `<strong>Resume Keywords Count:</strong> ${data.resume_keywords_count}\n\n`;
+                    resultText += `<strong>Message:</strong> ${data.message}`;
+                    resultContent.innerHTML = resultText;
+                } else {
+                    resultContent.innerHTML = `<div class="error">Error: ${data.error || 'Failed to match resume'}</div>`;
+                }
+            } catch (error) {
+                resultContent.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+            }
+        }
+    </script>
+</body>
+</html>
