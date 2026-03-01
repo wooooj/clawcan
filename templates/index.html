@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Recruitment Efficiency Tool</title>
+    <title>智能招聘效率工具</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -81,6 +81,7 @@
             padding: 15px;
             border-radius: 4px;
             border: 1px solid #eee;
+            overflow-x: auto;
         }
         .loading {
             text-align: center;
@@ -119,50 +120,57 @@
         .tab-content.active {
             display: block;
         }
+        .pyramid-layer {
+            margin: 15px 0;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .top-layer {
+            background-color: #e8f4fd;
+            border-left: 4px solid #3498db;
+        }
+        .middle-layer {
+            background-color: #f9f9f9;
+            border-left: 4px solid #95a5a6;
+        }
+        .bottom-layer {
+            background-color: #fff8e1;
+            border-left: 4px solid #f39c12;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🎯 Recruitment Efficiency Tool</h1>
+        <h1>🎯 智能招聘效率工具</h1>
         
         <div class="tabs">
-            <div class="tab active" onclick="switchTab('jd-analysis')">JD Analysis</div>
-            <div class="tab" onclick="switchTab('keyword-gen')">Keyword Generation</div>
-            <div class="tab" onclick="switchTab('resume-match')">Resume Matching</div>
+            <div class="tab active" onclick="switchTab('jd-analysis')">JD智能分析</div>
+            <div class="tab" onclick="switchTab('keyword-matrix')">关键词矩阵</div>
+            <div class="tab" onclick="switchTab('resume-match')">简历匹配</div>
         </div>
 
         <!-- JD Analysis Tab -->
         <div id="jd-analysis" class="tab-content active">
             <div class="form-group">
-                <label for="jd-text">Job Description:</label>
-                <textarea id="jd-text" placeholder="Paste the job description here..."></textarea>
+                <label for="jd-text">职位描述 (JD):</label>
+                <textarea id="jd-text" placeholder="粘贴职位描述文本...&#10;&#10;例如：&#10;职位：Python后端开发工程师&#10;要求：3年以上Python开发经验，熟悉Django/Flask框架，本科及以上学历，有大厂经验优先。"></textarea>
             </div>
-            <button onclick="analyzeJD()">Analyze Job Description</button>
+            <button onclick="analyzeJD()">分析职位描述</button>
             <div id="jd-result" class="result-section" style="display: none;">
-                <h3>Analysis Results:</h3>
+                <h3>JD分析结果:</h3>
                 <div id="jd-result-content" class="result-content"></div>
             </div>
         </div>
 
-        <!-- Keyword Generation Tab -->
-        <div id="keyword-gen" class="tab-content">
+        <!-- Keyword Matrix Tab -->
+        <div id="keyword-matrix" class="tab-content">
             <div class="form-group">
-                <label for="keyword-jd">Job Description:</label>
-                <textarea id="keyword-jd" placeholder="Paste the job description to extract keywords from..."></textarea>
+                <label for="keyword-base">基础关键词 (用逗号分隔):</label>
+                <textarea id="keyword-base" placeholder="例如：Python, 3年经验, 本科"></textarea>
             </div>
-            <div class="form-group">
-                <label for="keyword-type">Keyword Type:</label>
-                <select id="keyword-type">
-                    <option value="technical">Technical Skills</option>
-                    <option value="soft">Soft Skills</option>
-                    <option value="experience">Experience Requirements</option>
-                    <option value="education">Education Requirements</option>
-                    <option value="all">All Keywords</option>
-                </select>
-            </div>
-            <button onclick="generateKeywords()">Generate Keywords</button>
+            <button onclick="generateKeywordMatrix()">生成关键词矩阵</button>
             <div id="keyword-result" class="result-section" style="display: none;">
-                <h3>Generated Keywords:</h3>
+                <h3>关键词金字塔矩阵:</h3>
                 <div id="keyword-result-content" class="result-content"></div>
             </div>
         </div>
@@ -170,16 +178,16 @@
         <!-- Resume Matching Tab -->
         <div id="resume-match" class="tab-content">
             <div class="form-group">
-                <label for="match-jd">Job Description:</label>
-                <textarea id="match-jd" placeholder="Paste the job description here..."></textarea>
+                <label for="match-jd">职位描述 (JD):</label>
+                <textarea id="match-jd" placeholder="粘贴职位描述..."></textarea>
             </div>
             <div class="form-group">
-                <label for="match-resume">Resume/CV:</label>
-                <textarea id="match-resume" placeholder="Paste the candidate's resume here..."></textarea>
+                <label for="match-resume">简历/CV:</label>
+                <textarea id="match-resume" placeholder="粘贴候选人简历..."></textarea>
             </div>
-            <button onclick="matchResume()">Match Resume to JD</button>
+            <button onclick="matchResume()">匹配简历与JD</button>
             <div id="match-result" class="result-section" style="display: none;">
-                <h3>Matching Results:</h3>
+                <h3>匹配结果:</h3>
                 <div id="match-result-content" class="result-content"></div>
             </div>
         </div>
@@ -204,14 +212,14 @@
         async function analyzeJD() {
             const jdText = document.getElementById('jd-text').value;
             if (!jdText.trim()) {
-                alert('Please enter a job description.');
+                alert('请输入职位描述文本。');
                 return;
             }
             
             const resultDiv = document.getElementById('jd-result');
             const resultContent = document.getElementById('jd-result-content');
             resultDiv.style.display = 'block';
-            resultContent.innerHTML = '<div class="loading">Analyzing job description...</div>';
+            resultContent.innerHTML = '<div class="loading">正在分析职位描述...</div>';
             
             try {
                 const response = await fetch('/api/analyze-jd', {
@@ -223,55 +231,105 @@
                 });
                 
                 const data = await response.json();
-                if (response.ok) {
-                    let resultText = '';
-                    if (data.requirements && data.requirements.length > 0) {
-                        resultText += `<strong>Requirements:</strong>\n${data.requirements.join('\n')}\n\n`;
+                if (response.ok && !data.error) {
+                    let resultHTML = '';
+                    
+                    // 核心画像
+                    const profile = data.core_profile;
+                    resultHTML += '<strong>📊 核心画像</strong>\n\n';
+                    
+                    // 硬指标
+                    resultHTML += '<strong>🔧 硬指标:</strong>\n';
+                    resultHTML += `- 技术栈: ${profile.hard_requirements.tech_stack.join(', ') || '未指定'}\n`;
+                    resultHTML += `- 工作年限: ${profile.hard_requirements.years_experience}年\n`;
+                    resultHTML += `- 学历要求: ${profile.hard_requirements.education}\n\n`;
+                    
+                    // 软指标
+                    resultHTML += '<strong>🧠 软指标:</strong>\n';
+                    resultHTML += `- 行业背景: ${profile.soft_requirements.industry_background.join(', ')}\n`;
+                    resultHTML += `- 跳槽容忍度: ${profile.soft_requirements.job_hopping_tolerance}\n`;
+                    resultHTML += `- 大厂偏好: ${profile.soft_requirements.big_tech_preference ? '是' : '否'}\n`;
+                    resultHTML += `- 软技能要求: ${profile.soft_requirements.required_soft_skills.join(', ') || '未指定'}\n\n`;
+                    
+                    // 加分项
+                    if (profile.bonus_points.length > 0) {
+                        resultHTML += '<strong>⭐ 加分项:</strong>\n';
+                        resultHTML += `- ${profile.bonus_points.join('\n- ')}\n\n`;
                     }
-                    if (data.responsibilities && data.responsibilities.length > 0) {
-                        resultText += `<strong>Responsibilities:</strong>\n${data.responsibilities.join('\n')}\n\n`;
-                    }
-                    resultText += `<strong>Summary:</strong>\n${data.summary}`;
-                    resultContent.innerHTML = resultText;
+                    
+                    // 基础关键词
+                    resultHTML += '<strong>🔑 基础关键词:</strong>\n';
+                    resultHTML += `- ${data.base_keywords.join(', ')}\n\n`;
+                    
+                    resultHTML += `<strong>📝 总结:</strong> ${data.summary}`;
+                    
+                    resultContent.innerHTML = resultHTML;
                 } else {
-                    resultContent.innerHTML = `<div class="error">Error: ${data.error || 'Failed to analyze JD'}</div>`;
+                    resultContent.innerHTML = `<div class="error">错误: ${data.error || '分析失败'}</div>`;
                 }
             } catch (error) {
-                resultContent.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+                resultContent.innerHTML = `<div class="error">错误: ${error.message}</div>`;
             }
         }
 
-        async function generateKeywords() {
-            const jdText = document.getElementById('keyword-jd').value;
-            if (!jdText.trim()) {
-                alert('Please enter a job description.');
+        async function generateKeywordMatrix() {
+            const baseKeywords = document.getElementById('keyword-base').value;
+            if (!baseKeywords.trim()) {
+                alert('请输入基础关键词。');
                 return;
             }
             
             const resultDiv = document.getElementById('keyword-result');
             const resultContent = document.getElementById('keyword-result-content');
             resultDiv.style.display = 'block';
-            resultContent.innerHTML = '<div class="loading">Generating keywords...</div>';
+            resultContent.innerHTML = '<div class="loading">正在生成关键词矩阵...</div>';
             
             try {
-                const response = await fetch('/api/generate-keywords', {
+                const response = await fetch('/api/generate-keyword-matrix', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ 
-                        jd_text: jdText
-                    })
+                    body: JSON.stringify({ base_keywords: baseKeywords })
                 });
                 
                 const data = await response.json();
-                if (response.ok) {
-                    resultContent.innerHTML = data.keywords.join('\n');
+                if (response.ok && !data.error) {
+                    const pyramid = data.pyramid_structure;
+                    let resultHTML = '';
+                    
+                    // 顶层 - 精准搜索
+                    resultHTML += '<div class="pyramid-layer top-layer">';
+                    resultHTML += `<strong>🎯 顶层 - 精准搜索</strong>\n`;
+                    resultHTML += `<em>目标: ${pyramid.top_precision.purpose}</em>\n`;
+                    resultHTML += `<em>策略: ${pyramid.top_precision.search_strategy}</em>\n`;
+                    resultHTML += `关键词: ${pyramid.top_precision.keywords.join(', ')}\n`;
+                    resultHTML += '</div>\n';
+                    
+                    // 腰部 - 跨界搜索
+                    resultHTML += '<div class="pyramid-layer middle-layer">';
+                    resultHTML += `<strong>🔄 腰部 - 跨界搜索</strong>\n`;
+                    resultHTML += `<em>目标: ${pyramid.middle_cross.purpose}</em>\n`;
+                    resultHTML += `<em>策略: ${pyramid.middle_cross.search_strategy}</em>\n`;
+                    resultHTML += `关键词: ${pyramid.middle_cross.keywords.join(', ')}\n`;
+                    resultHTML += '</div>\n';
+                    
+                    // 底部 - 潜力搜索
+                    resultHTML += '<div class="pyramid-layer bottom-layer">';
+                    resultHTML += `<strong>🚀 底部 - 潜力搜索</strong>\n`;
+                    resultHTML += `<em>目标: ${pyramid.bottom_potential.purpose}</em>\n`;
+                    resultHTML += `<em>策略: ${pyramid.bottom_potential.search_strategy}</em>\n`;
+                    resultHTML += `关键词: ${pyramid.bottom_potential.keywords.join(', ')}\n`;
+                    resultHTML += '</div>\n';
+                    
+                    resultHTML += `\n<strong>总计关键词数量:</strong> ${data.total_keywords}`;
+                    
+                    resultContent.innerHTML = resultHTML;
                 } else {
-                    resultContent.innerHTML = `<div class="error">Error: ${data.error || 'Failed to generate keywords'}</div>`;
+                    resultContent.innerHTML = `<div class="error">错误: ${data.error || '生成失败'}</div>`;
                 }
             } catch (error) {
-                resultContent.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+                resultContent.innerHTML = `<div class="error">错误: ${error.message}</div>`;
             }
         }
 
@@ -280,14 +338,14 @@
             const resumeText = document.getElementById('match-resume').value;
             
             if (!jdText.trim() || !resumeText.trim()) {
-                alert('Please enter both job description and resume.');
+                alert('请同时输入职位描述和简历文本。');
                 return;
             }
             
             const resultDiv = document.getElementById('match-result');
             const resultContent = document.getElementById('match-result-content');
             resultDiv.style.display = 'block';
-            resultContent.innerHTML = '<div class="loading">Matching resume to job description...</div>';
+            resultContent.innerHTML = '<div class="loading">正在匹配简历与JD...</div>';
             
             try {
                 const response = await fetch('/api/match-resume', {
@@ -302,20 +360,20 @@
                 });
                 
                 const data = await response.json();
-                if (response.ok) {
-                    let resultText = `<strong>Match Percentage:</strong> ${data.match_percentage}%\n\n`;
+                if (response.ok && !data.error) {
+                    let resultText = `<strong>匹配度:</strong> ${data.match_percentage}%\n\n`;
                     if (data.common_keywords && data.common_keywords.length > 0) {
-                        resultText += `<strong>Common Keywords:</strong>\n${data.common_keywords.join('\n')}\n\n`;
+                        resultText += `<strong>共同关键词:</strong>\n${data.common_keywords.join('\n')}\n\n`;
                     }
-                    resultText += `<strong>JD Keywords Count:</strong> ${data.jd_keywords_count}\n`;
-                    resultText += `<strong>Resume Keywords Count:</strong> ${data.resume_keywords_count}\n\n`;
-                    resultText += `<strong>Message:</strong> ${data.message}`;
+                    resultText += `<strong>JD关键词数量:</strong> ${data.jd_keywords_count}\n`;
+                    resultText += `<strong>简历关键词数量:</strong> ${data.resume_keywords_count}\n\n`;
+                    resultText += `<strong>说明:</strong> ${data.message}`;
                     resultContent.innerHTML = resultText;
                 } else {
-                    resultContent.innerHTML = `<div class="error">Error: ${data.error || 'Failed to match resume'}</div>`;
+                    resultContent.innerHTML = `<div class="error">错误: ${data.error || '匹配失败'}</div>`;
                 }
             } catch (error) {
-                resultContent.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+                resultContent.innerHTML = `<div class="error">错误: ${error.message}</div>`;
             }
         }
     </script>
